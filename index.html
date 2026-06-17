@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TMWEB Faction Event Finder</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="topbar" aria-label="Faction overview">
+        <div>
+          <p class="eyebrow">Leader tools</p>
+          <h1>TMWEB Event Finder</h1>
+        </div>
+        <div class="sheet-status" id="sheetStatus">Loading sheet...</div>
+      </section>
+
+      <section class="controls" aria-label="Event finder controls">
+        <label>
+          <span>Sheet tab</span>
+          <select id="sheetSelect"></select>
+        </label>
+        <label>
+          <span>Event field</span>
+          <select id="eventSelect"></select>
+        </label>
+        <label>
+          <span>Find</span>
+          <select id="directionSelect">
+            <option value="highest">Highest</option>
+            <option value="lowest">Lowest</option>
+          </select>
+        </label>
+        <label>
+          <span>Results</span>
+          <select id="resultLimitSelect">
+            <option value="5">Top 5</option>
+            <option value="10">Top 10</option>
+            <option value="25">Top 25</option>
+            <option value="999">All</option>
+          </select>
+        </label>
+        <label class="search">
+          <span>Search member</span>
+          <input id="searchInput" type="search" placeholder="Find a member..." />
+        </label>
+        <label class="check">
+          <input id="includeZeroInput" type="checkbox" checked />
+          <span>Include zero scores</span>
+        </label>
+      </section>
+
+      <section class="metrics" aria-label="Current sheet summary">
+        <article>
+          <span>Members In Tab</span>
+          <strong id="memberCount">0</strong>
+        </article>
+        <article>
+          <span>Fields Available</span>
+          <strong id="fieldCount">0</strong>
+        </article>
+        <article>
+          <span>Scores In Field</span>
+          <strong id="scoreCount">0</strong>
+        </article>
+        <article>
+          <span>Current Match</span>
+          <strong id="currentMode">Highest</strong>
+        </article>
+      </section>
+
+      <section class="dashboard-grid">
+        <section class="panel finder" aria-label="Top five results">
+          <div class="panel-head">
+            <h2 id="finderTitle">Results</h2>
+            <span id="finderMeta"></span>
+          </div>
+          <div id="finderList" class="rank-list"></div>
+        </section>
+
+        <section class="panel player" aria-label="Player monthly scores">
+          <div class="panel-head">
+            <h2 id="playerTitle">Player Scores</h2>
+            <span id="playerMeta"></span>
+          </div>
+          <div id="playerScores" class="score-grid"></div>
+        </section>
+
+        <section class="panel roster" aria-label="Roster table">
+          <div class="panel-head">
+            <h2>Roster Lookup</h2>
+            <span id="rosterMeta"></span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr id="tableHead"></tr>
+              </thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
