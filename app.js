@@ -118,7 +118,6 @@ function filteredRows() {
 
 function fieldScores(rows) {
   const field = el.eventSelect.value;
-  const scoreFilter = el.scoreFilterSelect.value;
 
   if (field === "__all__") {
     return [];
@@ -130,15 +129,60 @@ function fieldScores(rows) {
       raw: row[field],
       score: cleanNumber(row[field]),
     }))
-    .filter((row) => {
-      if (row.score === null) return false;
-      if (scoreFilter === "nonzero") return row.score !== 0;
-      if (scoreFilter === "below14k") return row.score > 0 && row.score <= 14000;
-      if (scoreFilter === "below18m") return row.score > 0 && row.score <= 1800000;
-      if (scoreFilter === "below120") return row.score > 0 && row.score <= 120000000;
-      if (scoreFilter === "below80") return row.score > 0 && row.score <= 80000000;
-      return true;
+    .filter((row) => scoreMatchesFilter(row.score));
+}
+
+function scoreMatchesFilter(score) {
+  const scoreFilter = el.scoreFilterSelect.value;
+
+  if (score === null) return false;
+  if (scoreFilter === "nonzero") return score !== 0;
+  if (scoreFilter === "below14k") return score > 0 && score <= 14000;
+  if (scoreFilter === "below18m") return score > 0 && score <= 1800000;
+  if (scoreFilter === "below120") return score > 0 && score <= 120000000;
+  if (scoreFilter === "below80") return score > 0 && score <= 80000000;
+  return true;
+}
+
+function sortedScoreRows(rows) {
+  const field = el.eventSelect.value;
+  const mode = el.directionSelect.value;
+  const scoreFilter = el.scoreFilterSelect.value;
+  const isMinimumCheck = ["below14k", "below18m", "below120", "below80"].includes(
+    scoreFilter,
+  );
+
+  return rows
+    .map((row) => ({
+      row,
+      name: row.NAME,
+      score: cleanNumber(row[field]),
+    }))
+    .filter((item) => scoreMatchesFilter(item.score))
+    .sort((a, b) => {
+      if (isMinimumCheck || mode === "lowest") return a.score - b.score;
+      if (mode === "highest") return b.score - a.score;
+      return 0;
     });
+}
+
+function rosterRowsForCurrentSearch(rows) {
+  const field = el.eventSelect.value;
+  const mode = el.directionSelect.value;
+  const scoreFilter = el.scoreFilterSelect.value;
+  const limit = Number(el.resultLimitSelect.value);
+  const isMinimumCheck = ["below14k", "below18m", "below120", "below80"].includes(
+    scoreFilter,
+  );
+
+  if (field === "__all__") {
+    return rows;
+  }
+
+  const scoredRows = sortedScoreRows(rows);
+  const limitedRows =
+    mode === "none" && !isMinimumCheck ? scoredRows : scoredRows.slice(0, limit);
+  return limitedRows.map((item) => item.row);
 }
 
 function renderSheetOptions() {
@@ -189,18 +233,13 @@ function renderFinder(rows) {
     return;
   }
 
-  if (mode === "none" && !isMinimumCheck) {
-    el.finderTitle.textContent = `${field} Results`;
-    el.finderMeta.textContent = "Choose a find/filter";
-    el.finderList.innerHTML = "";
-    return;
-  }
-
-  const ranked = fieldScores(rows)
-    .sort((a, b) =>
-      isMinimumCheck || mode === "lowest" ? a.score - b.score : b.score - a.score,
-    )
-    .slice(0, limit);
+  const sortedScores = sortedScoreRows(rows).map((item) => ({
+    name: item.name,
+    score: item.score,
+  }));
+  const ranked = mode === "none" && !isMinimumCheck
+    ? sortedScores
+    : sortedScores.slice(0, limit);
 
   const minimumTitle =
     scoreFilter === "below14k"
@@ -213,7 +252,10 @@ function renderFinder(rows) {
         ? `Below 80m: ${field}`
         : null;
   el.finderTitle.textContent =
-    minimumTitle || `${limit >= 999 ? "All" : `Top ${limit}`} ${titleMode}: ${field}`;
+    minimumTitle ||
+    (mode === "none"
+      ? `${field} Scores`
+      : `${limit >= 999 ? "All" : `Top ${limit}`} ${titleMode}: ${field}`);
   el.finderMeta.textContent = `${formatNumber(ranked.length)} results`;
 
   if (!ranked.length) {
@@ -327,10 +369,11 @@ function renderTable(rows) {
 
 function render() {
   const rows = filteredRows();
+  const rosterRows = rosterRowsForCurrentSearch(rows);
   renderMetrics(rows);
   renderFinder(rows);
   renderPlayerScores(rows);
-  renderTable(rows);
+  renderTable(rosterRows);
 }
 
 async function loadSelectedSheet() {
