@@ -3,22 +3,25 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>TMWEB Faction Event Finder</title>
+    <title>TM Web Tracker</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <main class="shell">
       <section class="topbar" aria-label="Faction overview">
-        <div>
+        <div class="brand">
+          <img src="./tm-logo.png" alt="TM faction logo" />
+          <div>
           <p class="eyebrow">Leader tools</p>
-          <h1>TMWEB Event Finder</h1>
+          <h1>TM Web Tracker</h1>
+          </div>
         </div>
-        <div class="sheet-status" id="sheetStatus">Loading sheet...</div>
+        <div class="sheet-status" id="sheetStatus" aria-live="polite">Loading sheet...</div>
       </section>
 
       <section class="controls" aria-label="Event finder controls">
         <label>
-          <span>Sheet tab</span>
+          <span>Monthly Tab</span>
           <select id="sheetSelect"></select>
         </label>
         <label>
@@ -41,13 +44,14 @@
             <option value="999">All</option>
           </select>
         </label>
-        <label class="search">
-          <span>Search member</span>
-          <input id="searchInput" type="search" placeholder="Find a member..." />
-        </label>
-        <label class="check">
-          <input id="includeZeroInput" type="checkbox" checked />
-          <span>Include zero scores</span>
+        <label>
+          <span>Score filter</span>
+          <select id="scoreFilterSelect">
+            <option value="all">Include zeros</option>
+            <option value="nonzero">Exclude zeros</option>
+            <option value="below120">Below 120m</option>
+            <option value="below80">Below 80m</option>
+          </select>
         </label>
       </section>
 
@@ -57,16 +61,8 @@
           <strong id="memberCount">0</strong>
         </article>
         <article>
-          <span>Fields Available</span>
-          <strong id="fieldCount">0</strong>
-        </article>
-        <article>
-          <span>Scores In Field</span>
-          <strong id="scoreCount">0</strong>
-        </article>
-        <article>
-          <span>Current Match</span>
-          <strong id="currentMode">Highest</strong>
+          <span>Current Month</span>
+          <strong id="currentMonth">-</strong>
         </article>
       </section>
 
@@ -83,6 +79,12 @@
           <div class="panel-head">
             <h2 id="playerTitle">Player Scores</h2>
             <span id="playerMeta"></span>
+          </div>
+          <div class="player-search">
+            <label class="search">
+              <span>Search member</span>
+              <input id="searchInput" type="search" placeholder="Type a player name..." />
+            </label>
           </div>
           <div id="playerScores" class="score-grid"></div>
         </section>
@@ -104,6 +106,6 @@
       </section>
     </main>
 
-    <script src="./app.js"></script>
+    <script src="./app.js?v=2"></script>
   </body>
 </html>

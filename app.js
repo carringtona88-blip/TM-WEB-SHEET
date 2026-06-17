@@ -21,11 +21,9 @@ const el = {
   directionSelect: document.querySelector("#directionSelect"),
   resultLimitSelect: document.querySelector("#resultLimitSelect"),
   searchInput: document.querySelector("#searchInput"),
-  includeZeroInput: document.querySelector("#includeZeroInput"),
+  scoreFilterSelect: document.querySelector("#scoreFilterSelect"),
   memberCount: document.querySelector("#memberCount"),
-  fieldCount: document.querySelector("#fieldCount"),
-  scoreCount: document.querySelector("#scoreCount"),
-  currentMode: document.querySelector("#currentMode"),
+  currentMonth: document.querySelector("#currentMonth"),
   finderTitle: document.querySelector("#finderTitle"),
   finderMeta: document.querySelector("#finderMeta"),
   finderList: document.querySelector("#finderList"),
@@ -120,7 +118,7 @@ function filteredRows() {
 
 function fieldScores(rows) {
   const field = el.eventSelect.value;
-  const includeZero = el.includeZeroInput.checked;
+  const scoreFilter = el.scoreFilterSelect.value;
 
   if (field === "__all__") {
     return [];
@@ -132,13 +130,20 @@ function fieldScores(rows) {
       raw: row[field],
       score: cleanNumber(row[field]),
     }))
-    .filter((row) => row.score !== null && (includeZero || row.score !== 0));
+    .filter((row) => {
+      if (row.score === null) return false;
+      if (scoreFilter === "nonzero") return row.score !== 0;
+      if (scoreFilter === "below120") return row.score > 0 && row.score < 120000000;
+      if (scoreFilter === "below80") return row.score > 0 && row.score < 80000000;
+      return true;
+    });
 }
 
 function renderSheetOptions() {
   el.sheetSelect.innerHTML = SHEETS.map(
     (sheet) => `<option value="${sheet.gid}">${sheet.name}</option>`,
   ).join("");
+  el.sheetSelect.value = SHEETS[SHEETS.length - 1].gid;
 }
 
 function renderEventOptions(previousValue) {
@@ -151,40 +156,56 @@ function renderEventOptions(previousValue) {
 
   if (previousValue === "__all__" || (previousValue && fields.includes(previousValue))) {
     el.eventSelect.value = previousValue;
-  } else if (fields.includes("FEUD")) {
-    el.eventSelect.value = "FEUD";
+  } else {
+    el.eventSelect.value = "__all__";
   }
 }
 
 function renderMetrics(rows) {
-  const scores = fieldScores(state.rows);
-  const mode = el.directionSelect.value === "lowest" ? "Lowest" : "Highest";
+  const currentSheet = SHEETS.find((sheet) => sheet.gid === el.sheetSelect.value);
 
   el.memberCount.textContent = formatNumber(state.rows.length);
-  el.fieldCount.textContent = formatNumber(numericColumns().length);
-  el.scoreCount.textContent = formatNumber(scores.length);
-  el.currentMode.textContent = mode;
+  el.currentMonth.textContent = currentSheet ? currentSheet.name.split(" - ")[0] : "-";
   el.rosterMeta.textContent = `${formatNumber(rows.length)} shown`;
 }
 
 function renderFinder(rows) {
   const field = el.eventSelect.value;
   const mode = el.directionSelect.value;
+  const scoreFilter = el.scoreFilterSelect.value;
   const limit = Number(el.resultLimitSelect.value);
   const titleMode = mode === "lowest" ? "Lowest" : "Highest";
+  const hasSearch = el.searchInput.value.trim().length > 0;
+  const isMinimumCheck = scoreFilter === "below120" || scoreFilter === "below80";
 
   if (field === "__all__") {
     el.finderTitle.textContent = "All Events";
     el.finderMeta.textContent = "Player search";
-    el.finderList.innerHTML = `<div class="empty">Search a member to see all individual event scores for that player.</div>`;
+    el.finderList.innerHTML = "";
+    return;
+  }
+
+  if (!hasSearch && !isMinimumCheck) {
+    el.finderTitle.textContent = `${field} Results`;
+    el.finderMeta.textContent = "Search first";
+    el.finderList.innerHTML = "";
     return;
   }
 
   const ranked = fieldScores(rows)
-    .sort((a, b) => (mode === "lowest" ? a.score - b.score : b.score - a.score))
+    .sort((a, b) =>
+      isMinimumCheck || mode === "lowest" ? a.score - b.score : b.score - a.score,
+    )
     .slice(0, limit);
 
-  el.finderTitle.textContent = `${limit >= 999 ? "All" : `Top ${limit}`} ${titleMode}: ${field}`;
+  const minimumTitle =
+    scoreFilter === "below120"
+      ? `Below 120m: ${field}`
+      : scoreFilter === "below80"
+        ? `Below 80m: ${field}`
+        : null;
+  el.finderTitle.textContent =
+    minimumTitle || `${limit >= 999 ? "All" : `Top ${limit}`} ${titleMode}: ${field}`;
   el.finderMeta.textContent = `${formatNumber(ranked.length)} results`;
 
   if (!ranked.length) {
@@ -212,8 +233,8 @@ function renderPlayerScores(rows) {
 
   if (!query) {
     el.playerTitle.textContent = "Player Scores";
-    el.playerMeta.textContent = "Search a member";
-    el.playerScores.innerHTML = `<div class="empty">Type a member name to see all their scores for this month.</div>`;
+    el.playerMeta.textContent = "Ready";
+    el.playerScores.innerHTML = "";
     return;
   }
 
@@ -318,9 +339,12 @@ async function loadSelectedSheet() {
     state.rows = data.rows;
     renderEventOptions(previousField);
     render();
-    el.sheetStatus.textContent = `${sheet.name} loaded: ${formatNumber(state.rows.length)} members`;
+    el.sheetStatus.textContent = "";
   } catch (error) {
-    el.sheetStatus.textContent = "Could not load this sheet tab";
+    el.sheetStatus.textContent =
+      location.protocol === "file:"
+        ? "Open with the website link or local preview to load the sheet"
+        : "Could not load this sheet tab";
     el.finderList.innerHTML = `<div class="error">${error.message}</div>`;
     el.tableHead.innerHTML = "";
     el.tableBody.innerHTML = "";
@@ -333,6 +357,6 @@ el.eventSelect.addEventListener("change", render);
 el.directionSelect.addEventListener("change", render);
 el.resultLimitSelect.addEventListener("change", render);
 el.searchInput.addEventListener("input", render);
-el.includeZeroInput.addEventListener("change", render);
+el.scoreFilterSelect.addEventListener("change", render);
 
 loadSelectedSheet();
