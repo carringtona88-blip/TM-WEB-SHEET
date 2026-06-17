@@ -212,7 +212,6 @@ function renderMetrics(rows) {
 
   el.memberCount.textContent = formatNumber(state.rows.length);
   el.currentMonth.textContent = currentSheet ? currentSheet.name.split(" - ")[0] : "-";
-  el.rosterMeta.textContent = `${formatNumber(rows.length)} shown`;
 }
 
 function renderFinder(rows) {
@@ -350,6 +349,7 @@ function renderTable(rows) {
           state.columns.some((item) => item.label === column),
         );
   el.tableHead.innerHTML = visibleColumns.map((column) => `<th>${column}</th>`).join("");
+  el.rosterMeta.textContent = `${formatNumber(rows.length)} shown`;
   el.tableBody.innerHTML = rows
     .map(
       (row) => `
