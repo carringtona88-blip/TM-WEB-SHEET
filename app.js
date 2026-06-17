@@ -39,6 +39,10 @@ function csvUrl(gid) {
   return `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${gid}`;
 }
 
+function monthLabel(sheetName) {
+  return sheetName.split(" - ")[0].trim();
+}
+
 function parseCsv(csvText) {
   const rows = [];
   let row = [];
@@ -211,7 +215,7 @@ function renderMetrics(rows) {
   const currentSheet = SHEETS.find((sheet) => sheet.gid === el.sheetSelect.value);
 
   el.memberCount.textContent = formatNumber(state.rows.length);
-  el.currentMonth.textContent = currentSheet ? currentSheet.name.split(" - ")[0] : "-";
+  el.currentMonth.textContent = currentSheet ? monthLabel(currentSheet.name) : "-";
 }
 
 function renderFinder(rows) {
@@ -342,12 +346,35 @@ function renderPlayerScores(rows) {
 
 function renderTable(rows) {
   const selectedField = el.eventSelect.value;
+
+  if (selectedField !== "__all__") {
+    const visibleColumns = ["NAME", ...SHEETS.map((sheet) => monthLabel(sheet.name))];
+    el.tableHead.innerHTML = visibleColumns.map((column) => `<th>${column}</th>`).join("");
+    el.rosterMeta.textContent = `${formatNumber(rows.length)} shown`;
+    el.tableBody.innerHTML = rows
+      .map((row) => {
+        const playerName = row.NAME;
+        const monthlyScores = SHEETS.map((sheet) => {
+          const sheetData = state.sheetCache.get(sheet.gid);
+          const player = sheetData?.rows.find(
+            (item) => item.NAME.toLowerCase() === playerName.toLowerCase(),
+          );
+          return player?.[selectedField] || "-";
+        });
+
+        return `
+          <tr>
+            <td>${playerName}</td>
+            ${monthlyScores.map((score) => `<td>${score}</td>`).join("")}
+          </tr>
+        `;
+      })
+      .join("");
+    return;
+  }
+
   const visibleColumns =
-    selectedField === "__all__"
-      ? state.columns.map((column) => column.label)
-      : ["NAME", selectedField].filter((column) =>
-          state.columns.some((item) => item.label === column),
-        );
+    state.columns.map((column) => column.label);
   el.tableHead.innerHTML = visibleColumns.map((column) => `<th>${column}</th>`).join("");
   el.rosterMeta.textContent = `${formatNumber(rows.length)} shown`;
   el.tableBody.innerHTML = rows
@@ -408,6 +435,22 @@ async function loadSelectedSheet() {
   }
 }
 
+async function loadSheetData(gid) {
+  if (!state.sheetCache.has(gid)) {
+    const response = await fetch(`${csvUrl(gid)}&cacheBust=${Date.now()}`);
+    if (!response.ok) throw new Error(`Sheet returned ${response.status}`);
+    const csvText = await response.text();
+    state.sheetCache.set(gid, normalizeData(parseCsv(csvText)));
+  }
+
+  return state.sheetCache.get(gid);
+}
+
+async function preloadAllSheets() {
+  await Promise.all(SHEETS.map((sheet) => loadSheetData(sheet.gid)));
+  render();
+}
+
 renderSheetOptions();
 el.sheetSelect.addEventListener("change", loadSelectedSheet);
 el.eventSelect.addEventListener("change", render);
@@ -417,3 +460,4 @@ el.searchInput.addEventListener("input", render);
 el.scoreFilterSelect.addEventListener("change", render);
 
 loadSelectedSheet();
+preloadAllSheets().catch(() => {});
