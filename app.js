@@ -133,8 +133,10 @@ function fieldScores(rows) {
     .filter((row) => {
       if (row.score === null) return false;
       if (scoreFilter === "nonzero") return row.score !== 0;
-      if (scoreFilter === "below120") return row.score > 0 && row.score < 120000000;
-      if (scoreFilter === "below80") return row.score > 0 && row.score < 80000000;
+      if (scoreFilter === "below14k") return row.score > 0 && row.score <= 14000;
+      if (scoreFilter === "below18m") return row.score > 0 && row.score <= 1800000;
+      if (scoreFilter === "below120") return row.score > 0 && row.score <= 120000000;
+      if (scoreFilter === "below80") return row.score > 0 && row.score <= 80000000;
       return true;
     });
 }
@@ -176,7 +178,9 @@ function renderFinder(rows) {
   const limit = Number(el.resultLimitSelect.value);
   const titleMode = mode === "lowest" ? "Lowest" : "Highest";
   const hasSearch = el.searchInput.value.trim().length > 0;
-  const isMinimumCheck = scoreFilter === "below120" || scoreFilter === "below80";
+  const isMinimumCheck = ["below14k", "below18m", "below120", "below80"].includes(
+    scoreFilter,
+  );
 
   if (field === "__all__") {
     el.finderTitle.textContent = "All Events";
@@ -185,9 +189,9 @@ function renderFinder(rows) {
     return;
   }
 
-  if (!hasSearch && !isMinimumCheck) {
+  if (mode === "none" && !isMinimumCheck) {
     el.finderTitle.textContent = `${field} Results`;
-    el.finderMeta.textContent = "Search first";
+    el.finderMeta.textContent = "Choose a find/filter";
     el.finderList.innerHTML = "";
     return;
   }
@@ -199,7 +203,11 @@ function renderFinder(rows) {
     .slice(0, limit);
 
   const minimumTitle =
-    scoreFilter === "below120"
+    scoreFilter === "below14k"
+      ? `Below 14k: ${field}`
+      : scoreFilter === "below18m"
+        ? `Below 1.8m: ${field}`
+        : scoreFilter === "below120"
       ? `Below 120m: ${field}`
       : scoreFilter === "below80"
         ? `Below 80m: ${field}`
@@ -292,7 +300,13 @@ function renderPlayerScores(rows) {
 }
 
 function renderTable(rows) {
-  const visibleColumns = state.columns.map((column) => column.label);
+  const selectedField = el.eventSelect.value;
+  const visibleColumns =
+    selectedField === "__all__"
+      ? state.columns.map((column) => column.label)
+      : ["NAME", selectedField].filter((column) =>
+          state.columns.some((item) => item.label === column),
+        );
   el.tableHead.innerHTML = visibleColumns.map((column) => `<th>${column}</th>`).join("");
   el.tableBody.innerHTML = rows
     .map(

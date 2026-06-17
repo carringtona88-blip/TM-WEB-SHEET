@@ -31,6 +31,7 @@
         <label>
           <span>Find</span>
           <select id="directionSelect">
+            <option value="none">None</option>
             <option value="highest">Highest</option>
             <option value="lowest">Lowest</option>
           </select>
@@ -49,6 +50,8 @@
           <select id="scoreFilterSelect">
             <option value="all">Include zeros</option>
             <option value="nonzero">Exclude zeros</option>
+            <option value="below14k">Below 14k</option>
+            <option value="below18m">Below 1.8m</option>
             <option value="below120">Below 120m</option>
             <option value="below80">Below 80m</option>
           </select>
@@ -106,6 +109,6 @@
       </section>
     </main>
 
-    <script src="./app.js?v=2"></script>
+    <script src="./app.js?v=3"></script>
   </body>
 </html>
